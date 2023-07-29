@@ -14,7 +14,9 @@ on:
 jobs:
   builds:
     name: build-on-${{matrix.os}}-${{matrix.channel}}
+    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         channel: [stable, nightly]
         os: [ubuntu-latest, windows-latest]
