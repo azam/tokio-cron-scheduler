@@ -1,0 +1,51 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+  workflow_dispatch:
+
+jobs:
+  builds:
+    name: build-on-${{matrix.os}}-${{matrix.channel}}
+    strategy:
+      matrix:
+        channel: [stable, nightly]
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+        if: runner.os == 'Windows'
+      - run: vcpkg install openssl:x64-windows-static-md
+        if: runner.os == 'Windows'
+      - name: install-protoc
+        uses: arduino/setup-protoc@v2
+        with:
+          version: "23.x"
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: setup-toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{matrix.channel}}
+          override: true
+          components: rustfmt
+      - name: cargo-fmt
+        run: cargo fmt --check
+      - name: cargo-check
+        run: cargo check
+      - name: cargo-build
+        run: cargo build
+      - name: cargo-test
+        run: cargo test --all-features
+      - name: cargo-test-doc
+        run: cargo test --all-features --doc
+      - name: cargo-test-examples
+        run: cargo test --all-features --examples
